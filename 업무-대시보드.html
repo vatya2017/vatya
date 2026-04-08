@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VATYA Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+const GOOGLE_CLIENT_ID = 'YOUR_CLIENT_ID.apps.googleusercontent.com'; // Google Cloud Console에서 복사한 ID로 변경
+const GOOGLE_SCOPE = 'https://www.googleapis.com/auth/calendar';
+const GOOGLE_REDIRECT_URI = 'http://localhost:8000/업무-대시보드.html';
+</script>
 <style>
   :root {
     --black:   #ffffff;
@@ -370,6 +376,7 @@
   </div>
   <div class="topbar-right">
     <div class="topbar-date" id="live-date"></div>
+    <div id="google-auth-container" style="display:flex; align-items:center; gap:10px;"></div>
     <div class="topbar-badge">마케팅팀 대시보드</div>
   </div>
 </div>
@@ -583,12 +590,12 @@
 
 /* ── TODOS ── */
 let todos = [
-  {id:1,text:'영상 광고 소재 3개 검토 및 피드백',priority:'high',done:false,who:'박사원'},
-  {id:2,text:'3월 프로모션 기획안 최종 검토',priority:'high',done:false,who:'김대리'},
-  {id:3,text:'인플루언서 미팅 일정 최종 확정 (금요일 마감)',priority:'high',done:false,who:'이과장'},
-  {id:4,text:'경쟁사 C사 신규 캠페인 분석 보고서',priority:'med',done:false,who:'박사원'},
-  {id:5,text:'영상 제작비 추가 200만원 예산 품의서',priority:'med',done:false,who:'정팀장'},
-  {id:6,text:'4월 신제품 티저 일정표 공유',priority:'low',done:false,who:'전체팀'},
+  {id:1,text:'영상 광고 소재 3개 검토 및 피드백',priority:'high',done:false,who:'박사원',calendarEventId:null,lastSyncTime:Date.now()},
+  {id:2,text:'3월 프로모션 기획안 최종 검토',priority:'high',done:false,who:'김대리',calendarEventId:null,lastSyncTime:Date.now()},
+  {id:3,text:'인플루언서 미팅 일정 최종 확정 (금요일 마감)',priority:'high',done:false,who:'이과장',calendarEventId:null,lastSyncTime:Date.now()},
+  {id:4,text:'경쟁사 C사 신규 캠페인 분석 보고서',priority:'med',done:false,who:'박사원',calendarEventId:null,lastSyncTime:Date.now()},
+  {id:5,text:'영상 제작비 추가 200만원 예산 품의서',priority:'med',done:false,who:'정팀장',calendarEventId:null,lastSyncTime:Date.now()},
+  {id:6,text:'4월 신제품 티저 일정표 공유',priority:'low',done:false,who:'전체팀',calendarEventId:null,lastSyncTime:Date.now()},
 ];
 let nextId = 7;
 const pLabel = {high:'HIGH',med:'MED',low:'LOW'};
@@ -609,17 +616,46 @@ function renderTodos(){
   updateKpi();
 }
 
-function toggleTodo(id){ const t=todos.find(x=>x.id===id); if(t)t.done=!t.done; renderTodos(); }
-function deleteTodo(id){ todos=todos.filter(x=>x.id!==id); renderTodos(); }
+async function toggleTodo(id){
+  const t=todos.find(x=>x.id===id);
+  if(t){
+    t.done=!t.done;
+    t.lastSyncTime=Date.now();
+    renderTodos();
 
-function addTodo(){
+    // Google Calendar 이벤트 업데이트
+    if(isGoogleAuthed() && t.calendarEventId){
+      await updateCalendarEvent(t);
+    }
+  }
+}
+async function deleteTodo(id){
+  const t=todos.find(x=>x.id===id);
+
+  // Google Calendar에서 먼저 삭제
+  if(isGoogleAuthed() && t && t.calendarEventId){
+    await deleteCalendarEvent(t.calendarEventId);
+  }
+
+  todos=todos.filter(x=>x.id!==id);
+  renderTodos();
+}
+
+async function addTodo(){
   const input = document.getElementById('new-todo');
   const priority = document.getElementById('new-priority').value;
   const text = input.value.trim();
   if(!text){ input.focus(); return; }
-  todos.push({id:nextId++,text,priority,done:false,who:'나'});
+
+  const todo = {id:nextId++,text,priority,done:false,who:'나',calendarEventId:null,lastSyncTime:Date.now()};
+  todos.push(todo);
   input.value='';
   renderTodos();
+
+  // Google Calendar에 동기화
+  if(isGoogleAuthed()){
+    await syncTodoToCalendar(todo);
+  }
 }
 document.getElementById('new-todo').addEventListener('keydown',e=>{ if(e.key==='Enter') addTodo(); });
 
@@ -738,6 +774,43 @@ new Chart(document.getElementById('radarChart'),{
     plugins:{legend:{display:false}}
   }
 });
+</script>
+
+<!-- Google Calendar API 스크립트 로드 -->
+<script src="google-auth.js"></script>
+<script src="google-calendar-api.js"></script>
+<script src="sync-manager.js"></script>
+
+<script>
+// 페이지 로드 시 Google 인증 초기화
+window.addEventListener('load', () => {
+  // google.accounts가 로드될 때까지 대기
+  if (typeof google !== 'undefined' && google.accounts) {
+    googleAuth.init();
+
+    // 이미 인증된 경우 Calendar에서 동기화
+    if (isGoogleAuthed()) {
+      syncManager.syncFromCalendar();
+    }
+  } else {
+    // 재시도
+    setTimeout(() => {
+      if (typeof google !== 'undefined' && google.accounts) {
+        googleAuth.init();
+        if (isGoogleAuthed()) {
+          syncManager.syncFromCalendar();
+        }
+      }
+    }, 1000);
+  }
+});
+
+// 주기적 동기화 (5분마다)
+setInterval(() => {
+  if (isGoogleAuthed()) {
+    syncManager.syncFromCalendar();
+  }
+}, 300000);
 </script>
 </body>
 </html>
