@@ -128,6 +128,42 @@ class GoogleCalendarAPI {
       return [];
     }
   }
+
+  // 주간 이벤트 조회 (일정 관리용)
+  async getWeeklyEvents() {
+    try {
+      // 이번 주 월요일부터 일요일까지 이벤트 조회
+      const today = new Date();
+      const dayOfWeek = today.getDay();
+      const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+
+      const monday = new Date(today);
+      monday.setDate(today.getDate() + mondayOffset);
+      monday.setHours(0, 0, 0, 0);
+
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      sunday.setHours(23, 59, 59, 999);
+
+      const timeMin = monday.toISOString();
+      const timeMax = sunday.toISOString();
+
+      const result = await this.makeRequest(
+        'GET',
+        `/calendars/${this.calendarId}/events?` +
+        `timeMin=${encodeURIComponent(timeMin)}&` +
+        `timeMax=${encodeURIComponent(timeMax)}&` +
+        `orderBy=startTime&` +
+        `singleEvents=true`,
+        null
+      );
+
+      return result.items || [];
+    } catch (error) {
+      console.error('Failed to get weekly events:', error);
+      return [];
+    }
+  }
 }
 
 const googleCalendarAPI = new GoogleCalendarAPI();

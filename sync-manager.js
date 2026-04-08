@@ -74,6 +74,20 @@ class SyncManager {
       await this.syncTodoToCalendar(todo);
     }
   }
+
+  // 주간 일정 동기화
+  async syncWeeklySchedule() {
+    if (!isGoogleAuthed()) return [];
+
+    try {
+      const events = await googleCalendarAPI.getWeeklyEvents();
+      console.log(`✓ Synced ${events.length} weekly events from Calendar`);
+      return events;
+    } catch (error) {
+      console.error('Failed to sync weekly schedule:', error);
+      return [];
+    }
+  }
 }
 
 const syncManager = new SyncManager();
@@ -89,4 +103,9 @@ async function deleteCalendarEvent(eventId) {
 
 async function updateCalendarEvent(todo) {
   await syncManager.syncTodoToCalendar(todo);
+}
+
+// 주간 일정 조회
+async function getWeeklyScheduleFromCalendar() {
+  return await syncManager.syncWeeklySchedule();
 }
