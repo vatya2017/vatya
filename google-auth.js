@@ -1,9 +1,10 @@
-// Google OAuth 2.0 Implicit Flow 인증 관리
+// Google OAuth 2.0 인증 관리
 class GoogleAuth {
   constructor() {
     this.accessToken = null;
     this.tokenExpiry = null;
-    this.clientId = '593308343689-j5khk34u6d7n6c7d9k8l9m0n1o2p3q4r.apps.googleusercontent.com'; // Google OAuth Client ID (공개용)
+    // 사용자가 Google Cloud Console에서 Client ID를 설정해야 함
+    this.clientId = localStorage.getItem('google_client_id') || null;
     this.scopes = [
       'https://www.googleapis.com/auth/calendar',
       'https://www.googleapis.com/auth/spreadsheets'
@@ -18,8 +19,11 @@ class GoogleAuth {
     const container = document.getElementById('google-auth-container');
     if (this.getStoredToken()) {
       this.showLogoutButton();
+      // 대시보드 표시
+      document.getElementById('dashboard-container').style.display = 'block';
+      document.getElementById('login-modal').style.display = 'none';
     } else {
-      this.showLoginButton();
+      this.showLoginModal();
     }
   }
 
@@ -41,16 +45,28 @@ class GoogleAuth {
     }
   }
 
+  // 로그인 모달 표시
+  showLoginModal() {
+    const loginModal = document.getElementById('login-modal');
+    if (loginModal) {
+      loginModal.style.display = 'flex';
+    }
+    const dashboardContainer = document.getElementById('dashboard-container');
+    if (dashboardContainer) {
+      dashboardContainer.style.display = 'none';
+    }
+  }
+
   // Google Authorization Endpoint로 redirect
   login() {
-    // 모바일과 데스크톱 모두 호환되는 리다이렉트 URI
-    const baseUrl = window.location.origin;
-    const pathname = window.location.pathname;
+    // Client ID 없으면 경고
+    if (!this.clientId) {
+      alert('⚠️ Google Cloud Console에서 Client ID 설정이 필요합니다.\n개발자 문의: Google Cloud Console → OAuth 2.0 설정 필요');
+      return;
+    }
 
-    // PWA 모드 또는 일반 모드에서 모두 작동
-    const redirectUri = pathname === '/'
-      ? baseUrl + '/'
-      : baseUrl + pathname;
+    // 현재 페이지로 리다이렉트되도록 설정
+    const redirectUri = window.location.origin + '/';
 
     const scope = this.scopes.join(' ');
 
@@ -60,11 +76,16 @@ class GoogleAuth {
       `response_type=token&` +
       `scope=${encodeURIComponent(scope)}&` +
       `prompt=consent&` +
-      `access_type=offline&` +
       `include_granted_scopes=true`;
 
-    // 모바일 사파리에서도 새 탭이 아닌 같은 탭에서 열기
+    console.log('OAuth URL:', authUrl);
     window.location.href = authUrl;
+  }
+
+  // Client ID 설정 (Google Cloud에서 생성 후)
+  setClientId(clientId) {
+    this.clientId = clientId;
+    localStorage.setItem('google_client_id', clientId);
   }
 
   // 토큰 저장
@@ -103,64 +124,19 @@ class GoogleAuth {
     return this.getAccessToken() !== null;
   }
 
-  // 로그인 버튼 표시
-  showLoginButton() {
-    const container = document.getElementById('google-auth-container');
-    container.innerHTML = `
-      <button onclick="googleAuth.login()" style="
-        background: white;
-        color: #1f2937;
-        border: 1px solid #d1d5db;
-        padding: 8px 16px;
-        border-radius: 4px;
-        font-size: 12px;
-        font-weight: 600;
-        cursor: pointer;
-        font-family: inherit;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      ">
-        <span style="font-size: 16px;">🔐</span>
-        Google로 로그인
-      </button>
-    `;
-  }
-
-  // 로그아웃 버튼 표시
-  showLogoutButton() {
-    const container = document.getElementById('google-auth-container');
-    const userEmail = this.getUserEmail();
-    container.innerHTML = `
-      <span style="font-size: 12px; color: white;">${userEmail}</span>
-      <button onclick="googleAuth.logout()" style="
-        background: rgba(255,255,255,0.2);
-        color: white;
-        border: 1px solid rgba(255,255,255,0.4);
-        padding: 6px 12px;
-        border-radius: 4px;
-        font-size: 11px;
-        cursor: pointer;
-        font-family: inherit;
-      ">로그아웃</button>
-    `;
-  }
-
   // 로그아웃
   logout() {
     localStorage.removeItem('google_token');
     localStorage.removeItem('google_token_time');
     localStorage.removeItem('google_token_expiry');
+    localStorage.removeItem('google_user_email');
     this.accessToken = null;
 
-    const container = document.getElementById('google-auth-container');
-    this.showLoginButton();
+    this.showLoginModal();
   }
 
   // 사용자 정보 조회 (토큰에서 기본 정보 추출)
   getUserEmail() {
-    // Implicit Flow에서는 JWT가 아닌 Bearer token이므로
-    // Google People API 호출 또는 localStorage에서 가져오기
     return localStorage.getItem('google_user_email') || '사용자';
   }
 
@@ -185,7 +161,36 @@ class GoogleAuth {
   // 인증 성공 콜백
   async onAuthSuccess() {
     await this.fetchUserProfile();
-    this.showLogoutButton();
+
+    // 대시보드 표시
+    const dashboardContainer = document.getElementById('dashboard-container');
+    const loginModal = document.getElementById('login-modal');
+    if (dashboardContainer && loginModal) {
+      dashboardContainer.style.display = 'block';
+      loginModal.style.display = 'none';
+    }
+
+    // topbar에 로그아웃 버튼 표시
+    const topbarRight = document.querySelector('.topbar-right');
+    if (topbarRight) {
+      const userEmail = this.getUserEmail();
+      const authContainer = document.getElementById('google-auth-container');
+      if (authContainer) {
+        authContainer.innerHTML = `
+          <span style="font-size: 12px; color: white;">${userEmail}</span>
+          <button onclick="googleAuth.logout()" style="
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.4);
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            font-family: inherit;
+          ">로그아웃</button>
+        `;
+      }
+    }
 
     // 동기화 시작
     if (typeof syncManager !== 'undefined') {
