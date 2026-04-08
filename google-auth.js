@@ -43,7 +43,15 @@ class GoogleAuth {
 
   // Google Authorization Endpoint로 redirect
   login() {
-    const redirectUri = window.location.origin + window.location.pathname;
+    // 모바일과 데스크톱 모두 호환되는 리다이렉트 URI
+    const baseUrl = window.location.origin;
+    const pathname = window.location.pathname;
+
+    // PWA 모드 또는 일반 모드에서 모두 작동
+    const redirectUri = pathname === '/'
+      ? baseUrl + '/'
+      : baseUrl + pathname;
+
     const scope = this.scopes.join(' ');
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
@@ -52,8 +60,10 @@ class GoogleAuth {
       `response_type=token&` +
       `scope=${encodeURIComponent(scope)}&` +
       `prompt=consent&` +
-      `access_type=offline`;
+      `access_type=offline&` +
+      `include_granted_scopes=true`;
 
+    // 모바일 사파리에서도 새 탭이 아닌 같은 탭에서 열기
     window.location.href = authUrl;
   }
 
