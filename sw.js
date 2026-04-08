@@ -1,5 +1,5 @@
 // Service Worker - 오프라인 지원
-const CACHE_NAME = 'vatya-v1';
+const CACHE_NAME = 'vatya-v2';
 const urlsToCache = [
   '/',
   '/index.html',
