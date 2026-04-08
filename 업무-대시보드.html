@@ -1026,24 +1026,12 @@ new Chart(document.getElementById('radarChart'),{
 <script>
 // 페이지 로드 시 Google 인증 초기화
 window.addEventListener('load', () => {
-  // google.accounts가 로드될 때까지 대기
-  if (typeof google !== 'undefined' && google.accounts) {
-    googleAuth.init();
+  // Google OAuth Implicit Flow 초기화
+  googleAuth.init();
 
-    // 이미 인증된 경우 Calendar에서 동기화
-    if (isGoogleAuthed()) {
-      syncManager.syncFromCalendar();
-    }
-  } else {
-    // 재시도
-    setTimeout(() => {
-      if (typeof google !== 'undefined' && google.accounts) {
-        googleAuth.init();
-        if (isGoogleAuthed()) {
-          syncManager.syncFromCalendar();
-        }
-      }
-    }, 1000);
+  // 이미 인증된 경우 Calendar에서 동기화
+  if (isGoogleAuthed()) {
+    syncManager.syncFromCalendar();
   }
 });
 
