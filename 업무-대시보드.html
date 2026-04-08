@@ -6,6 +6,12 @@
 <title>VATYA Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="김비서">
 <script>
 const GOOGLE_CLIENT_ID = 'YOUR_CLIENT_ID.apps.googleusercontent.com'; // Google Cloud Console에서 복사한 ID로 변경
 const GOOGLE_SCOPE = 'https://www.googleapis.com/auth/calendar';
@@ -811,6 +817,15 @@ setInterval(() => {
     syncManager.syncFromCalendar();
   }
 }, 300000);
+</script>
+
+<!-- Service Worker 등록 (PWA) -->
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js', { scope: '/' })
+    .then(registration => console.log('✓ Service Worker 등록 완료'))
+    .catch(error => console.log('Service Worker 등록 실패:', error));
+}
 </script>
 </body>
 </html>

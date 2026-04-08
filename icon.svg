@@ -1,0 +1,10 @@
+<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  <!-- 배경 -->
+  <rect width="512" height="512" fill="#1a1a2e"/>
+
+  <!-- 원형 배경 -->
+  <circle cx="256" cy="256" r="220" fill="#2347a0"/>
+
+  <!-- 텍스트: 김 -->
+  <text x="256" y="330" font-family="Arial, sans-serif" font-size="200" font-weight="bold" fill="#ffffff" text-anchor="middle" dominant-baseline="middle">김</text>
+</svg>
