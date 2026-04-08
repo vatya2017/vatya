@@ -359,6 +359,60 @@ const GOOGLE_REDIRECT_URI = 'http://localhost:8000/업무-대시보드.html';
     margin-bottom: 20px;
   }
 
+  /* ── GOOGLE SEARCH BOX ── */
+  .google-search-wrapper {
+    padding: 20px 32px;
+    background: var(--white);
+    display: flex;
+    justify-content: center;
+  }
+  .google-search-box {
+    width: 100%;
+    max-width: 600px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 10px 18px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: box-shadow 0.2s;
+  }
+  .google-search-box:focus-within {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    border-color: var(--blue);
+  }
+  .google-search-icon {
+    color: var(--muted);
+    font-size: 16px;
+    line-height: 1;
+  }
+  .google-search-box input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--text);
+  }
+  .google-search-box input::placeholder {
+    color: var(--muted);
+  }
+  .google-search-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--blue);
+    line-height: 1;
+    padding: 0;
+    transition: color 0.2s;
+  }
+  .google-search-btn:hover {
+    color: var(--blue2);
+  }
+
   /* ── FOOTER TAGLINE ── */
   .footer {
     margin-top: 8px;
@@ -376,6 +430,24 @@ const GOOGLE_REDIRECT_URI = 'http://localhost:8000/업무-대시보드.html';
      ════════════════════════════════════════════ */
   @media (max-width: 768px) {
     body { font-size: 13px; overflow-x: hidden; }
+
+    /* ── 구글 검색 ── */
+    .google-search-wrapper {
+      padding: 12px 12px;
+    }
+    .google-search-box {
+      max-width: none;
+      padding: 8px 14px;
+    }
+    .google-search-box input {
+      font-size: 13px;
+    }
+    .google-search-icon {
+      font-size: 14px;
+    }
+    .google-search-btn {
+      font-size: 14px;
+    }
 
     /* ── 상단바: 한 줄 compact ── */
     .topbar {
@@ -548,6 +620,15 @@ const GOOGLE_REDIRECT_URI = 'http://localhost:8000/업무-대시보드.html';
 
 <!-- STRIPE -->
 <div class="stripe-deco"></div>
+
+<!-- GOOGLE SEARCH -->
+<div class="google-search-wrapper">
+  <div class="google-search-box">
+    <span class="google-search-icon">🔍</span>
+    <input type="text" id="google-search-input" placeholder="Google에서 검색..." autocomplete="off"/>
+    <button class="google-search-btn" onclick="performGoogleSearch()">검색</button>
+  </div>
+</div>
 
 <div class="main">
 
@@ -987,6 +1068,24 @@ if ('serviceWorker' in navigator) {
     .then(registration => console.log('✓ Service Worker 등록 완료'))
     .catch(error => console.log('Service Worker 등록 실패:', error));
 }
+</script>
+
+<!-- Google Search -->
+<script>
+function performGoogleSearch() {
+  const query = document.getElementById('google-search-input').value.trim();
+  if (query) {
+    window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, '_blank');
+    document.getElementById('google-search-input').value = '';
+  }
+}
+
+// Enter 키로도 검색 가능
+document.getElementById('google-search-input').addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') {
+    performGoogleSearch();
+  }
+});
 </script>
 </body>
 </html>
