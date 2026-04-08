@@ -371,222 +371,163 @@ const GOOGLE_REDIRECT_URI = 'http://localhost:8000/업무-대시보드.html';
   .footer-logo { font-size: 18px; font-weight: 900; color: var(--blue-lt); letter-spacing: 3px; }
   .footer-tag  { font-size: 11px; color: var(--muted); letter-spacing: 1px; }
 
-  /* ── MOBILE RESPONSIVE ── */
+  /* ════════════════════════════════════════════
+     MOBILE RESPONSIVE
+     ════════════════════════════════════════════ */
   @media (max-width: 768px) {
     body { font-size: 13px; overflow-x: hidden; }
 
-    /* Topbar */
+    /* ── 상단바: 한 줄 compact ── */
     .topbar {
-      height: auto;
-      min-height: 56px;
-      padding: 10px 16px;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 8px;
-    }
-    .topbar > div:first-child {
-      display: flex;
+      height: 52px;
+      padding: 0 16px;
+      flex-direction: row;
       align-items: center;
-      gap: 10px;
-      width: 100%;
       justify-content: space-between;
     }
     .topbar-logo { font-size: 20px; letter-spacing: 2px; }
     .topbar-tagline { display: none; }
-    .topbar-right {
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      gap: 8px;
-      width: 100%;
-      flex-wrap: nowrap;
-      overflow: hidden;
-    }
-    .topbar-date { font-size: 11px; white-space: nowrap; flex-shrink: 0; }
-    .topbar-badge {
-      font-size: 9px;
-      padding: 3px 8px;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-    #google-auth-container {
-      flex: 1;
-      min-width: 0;
-      display: flex !important;
-      justify-content: flex-end;
-    }
+    .topbar-right { gap: 10px; }
+    .topbar-date { display: none; }
+    .topbar-badge { display: none; }
 
-    /* Main */
-    .main { padding: 14px 12px; }
+    /* ── 스트라이프 ── */
+    .stripe-deco { height: 5px; margin-bottom: 0; }
 
-    /* Section Label */
-    .section-label { font-size: 9px; margin-bottom: 10px; }
+    /* ── 메인 패딩 ── */
+    .main { padding: 16px 14px; }
 
-    /* KPI Row — 2열 */
+    /* ── 섹션 레이블 ── */
+    .section-label { font-size: 9px; letter-spacing: 2.5px; margin-bottom: 10px; }
+
+    /* ── KPI: 2×2 그리드, 파란 gap이 구분선 역할 ── */
     .kpi-row {
       grid-template-columns: repeat(2, 1fr);
       gap: 2px;
+      background: var(--blue);
       margin-bottom: 16px;
     }
-    .kpi { padding: 14px 12px; }
+    .kpi { padding: 16px 14px; }
     .kpi:not(:last-child) { border-right: none; }
-    .kpi-label { font-size: 9px; margin-bottom: 6px; }
-    .kpi-value { font-size: 22px; margin-bottom: 3px; letter-spacing: -0.5px; }
-    .kpi-value span { font-size: 12px !important; }
+    .kpi-label { font-size: 9px; letter-spacing: 1.5px; margin-bottom: 6px; }
+    .kpi-value { font-size: 24px; margin-bottom: 4px; letter-spacing: -0.5px; }
+    .kpi-value span { font-size: 13px !important; }
     .kpi-sub { font-size: 10px; }
-    .kpi-bar { margin-top: 8px; }
+    .kpi-bar { margin-top: 10px; }
 
-    /* Grid — 1열로 스택 */
+    /* ── 그리드: 1열 스택 ── */
     .grid-2, .grid-3 {
       grid-template-columns: 1fr;
       gap: 12px;
-      margin-bottom: 12px;
+      margin-bottom: 14px;
     }
 
-    /* Card */
-    .card { padding: 16px 14px; border-top-width: 2px; }
-    .card-title { font-size: 9px; margin-bottom: 12px; letter-spacing: 2px; }
-    .card-title span { font-size: 10px; }
+    /* ── 카드 ── */
+    .card { padding: 18px 14px; border-top-width: 3px; }
+    .card-title { font-size: 9px; letter-spacing: 2px; margin-bottom: 14px; }
+    .card-title span { font-size: 11px; }
 
-    /* Todo 입력폼 */
+    /* ── 할 일 입력폼: 그리드 3열 ── */
     .todo-add {
       display: grid;
       grid-template-columns: 1fr auto auto;
       gap: 6px;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
     }
-    .todo-add input {
-      width: 100%;
-      padding: 8px 10px;
-      font-size: 13px;
-    }
-    .todo-add select {
-      font-size: 12px;
-      padding: 8px 6px;
-      min-width: 56px;
-    }
-    .todo-add button {
-      padding: 8px 14px;
-      font-size: 11px;
-      white-space: nowrap;
-    }
+    .todo-add input  { padding: 10px 12px; font-size: 13px; min-height: 44px; }
+    .todo-add select { padding: 10px 8px;  font-size: 12px; min-height: 44px; }
+    .todo-add button { padding: 10px 16px; font-size: 12px; min-height: 44px; letter-spacing: 1px; white-space: nowrap; }
 
-    /* Todo 아이템 */
-    .todo-item {
-      gap: 6px;
-      padding: 9px 10px;
-      margin-bottom: 4px;
-      flex-wrap: nowrap;
-    }
-    .todo-text { font-size: 12px; min-width: 0; }
-    .todo-who { font-size: 10px; white-space: nowrap; }
-    .p-badge { font-size: 8px; padding: 2px 5px; white-space: nowrap; }
-    .todo-delete { opacity: 1; font-size: 16px; }
+    /* ── 할 일 아이템 ── */
+    .todo-item { gap: 8px; padding: 11px 12px; margin-bottom: 4px; }
+    .todo-cb { width: 20px; height: 20px; flex-shrink: 0; }
+    .todo-text { font-size: 12px; min-width: 0; word-break: keep-all; }
+    .todo-who  { font-size: 10px; white-space: nowrap; }
+    .p-badge   { font-size: 8px; padding: 2px 6px; white-space: nowrap; }
+    .todo-delete { opacity: 1; font-size: 18px; }
 
-    /* Project */
-    .proj-item { margin-bottom: 14px; }
+    /* ── 프로젝트 ── */
+    .proj-item { margin-bottom: 16px; }
     .proj-name { font-size: 11px; }
-    .proj-pct { font-size: 11px; }
+    .proj-pct  { font-size: 12px; }
+    .proj-sub  { font-size: 10px; }
 
-    /* 주간 일정 — 가로 스크롤 */
+    /* ── 주간 일정: 가로 스크롤 ── */
     .week-grid {
       display: flex;
-      flex-direction: row;
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
       gap: 6px;
-      padding-bottom: 6px;
+      padding-bottom: 4px;
       scrollbar-width: none;
     }
     .week-grid::-webkit-scrollbar { display: none; }
-    .week-grid > div {
-      flex-shrink: 0;
-      width: 72px;
-    }
-    .day-label { font-size: 9px; padding: 3px 0 4px; }
-    .day-num { font-size: 13px; padding: 5px 2px; }
-    .day-event { font-size: 9px; padding: 4px 5px; margin-bottom: 3px; }
+    .week-grid > div { flex-shrink: 0; width: 76px; }
+    .day-label { font-size: 9px; padding: 3px 0 5px; text-align: center; }
+    .day-num   { font-size: 14px; padding: 6px 2px; text-align: center; }
+    .day-event { font-size: 9px; padding: 5px 5px; margin-bottom: 3px; line-height: 1.35; }
     .event-time { font-size: 8px; }
 
-    /* Chart */
-    .chart-wrap { height: 160px; }
-    .chart-wrap.sm { height: 140px; }
+    /* ── 차트 ── */
+    .chart-wrap    { height: 200px; }
+    .chart-wrap.sm { height: 160px; }
 
-    /* Sales Table — 스크롤 가능 */
-    .table-scroll-wrap {
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-    .sales-table { font-size: 12px; min-width: 300px; }
-    .sales-table th { padding: 7px 8px; font-size: 8px; }
-    .sales-table td { padding: 8px 8px; }
+    /* ── 테이블 ── */
+    .table-scroll-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .sales-table { min-width: 280px; font-size: 12px; }
+    .sales-table th { padding: 8px 8px; font-size: 8px; }
+    .sales-table td { padding: 9px 8px; }
     .rank-box { width: 20px; height: 20px; font-size: 9px; }
     .bar-inline { display: none; }
 
-    /* Stripe */
-    .stripe-deco { height: 6px; margin-bottom: 14px; }
-
-    /* Footer */
+    /* ── 푸터 ── */
     .footer {
-      padding: 14px 16px;
+      padding: 16px 14px;
       flex-direction: column;
       align-items: flex-start;
       gap: 4px;
-      border-top-width: 2px;
     }
     .footer-logo { font-size: 15px; }
-    .footer-tag { font-size: 10px; }
+    .footer-tag  { font-size: 10px; }
   }
 
-  /* ── 소형 모바일 (max 480px) ── */
+  /* ── 소형 모바일 (≤ 480px) ── */
   @media (max-width: 480px) {
-    .topbar { padding: 8px 14px; }
+    .topbar { height: 50px; padding: 0 14px; }
     .topbar-logo { font-size: 18px; }
-    .main { padding: 12px 10px; }
+    .main { padding: 14px 12px; }
+    .kpi { padding: 14px 12px; }
+    .kpi-value { font-size: 22px; }
+    .card { padding: 16px 12px; }
+    .week-grid > div { width: 68px; }
+    .chart-wrap    { height: 180px; }
+    .chart-wrap.sm { height: 145px; }
+  }
 
-    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+  /* ── 초소형 모바일 (≤ 360px) ── */
+  @media (max-width: 360px) {
+    .topbar { height: 48px; padding: 0 12px; }
+    .topbar-logo { font-size: 16px; }
+    .main { padding: 12px 10px; }
     .kpi { padding: 12px 10px; }
     .kpi-value { font-size: 20px; }
-
-    .todo-add {
-      grid-template-columns: 1fr auto auto;
-      gap: 5px;
-    }
-
-    .week-grid > div { width: 66px; }
-  }
-
-  /* ── 초소형 모바일 (max 360px) ── */
-  @media (max-width: 360px) {
-    .topbar { padding: 8px 12px; }
-    .topbar-logo { font-size: 16px; }
-    .topbar-badge { display: none; }
-    .main { padding: 10px 8px; }
-
-    .kpi-row { grid-template-columns: 1fr 1fr; }
-    .kpi { padding: 10px 8px; }
-    .kpi-value { font-size: 18px; }
     .kpi-sub { font-size: 9px; }
-
-    .card { padding: 12px 10px; }
+    .card { padding: 14px 10px; }
     .card-title { font-size: 8px; }
-
+    /* 입력폼: 세로 스택 */
     .todo-add {
       grid-template-columns: 1fr;
       gap: 6px;
     }
     .todo-add select,
     .todo-add button { width: 100%; }
-
-    .week-grid > div { width: 60px; }
-    .day-event { font-size: 8px; padding: 3px 4px; }
-
-    .chart-wrap { height: 130px; }
-    .chart-wrap.sm { height: 110px; }
-
-    .footer { padding: 10px 12px; }
+    .week-grid > div { width: 62px; }
+    .day-event { font-size: 8px; padding: 4px 4px; }
+    .chart-wrap    { height: 160px; }
+    .chart-wrap.sm { height: 130px; }
+    .footer { padding: 12px 10px; }
     .footer-logo { font-size: 13px; }
-    .footer-tag { font-size: 9px; }
+    .footer-tag  { font-size: 9px; }
   }
 </style>
 </head>
