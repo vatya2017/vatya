@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VATYA Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+const GOOGLE_CLIENT_ID = 'YOUR_CLIENT_ID.apps.googleusercontent.com'; // Google Cloud Console에서 복사한 ID로 변경
+const GOOGLE_SCOPE = 'https://www.googleapis.com/auth/calendar';
+const GOOGLE_REDIRECT_URI = 'http://localhost:8000/업무-대시보드.html';
+</script>
+<style>
+  :root {
+    --black:   #ffffff;
+    --surface: #f4f6fb;
+    --card:    #ffffff;
+    --border:  #dde2ee;
+    --blue:    #2347a0;
+    --blue2:   #1a3a8f;
+    --blue-lt: #2347a0;
+    --blue-dim: rgba(35,71,160,0.08);
+    --white:   #ffffff;
+    --offwhite:#f4f6fb;
+    --muted:   #8892aa;
+    --text:    #1a1e2e;
+    --green:   #1e8c52;
+    --orange:  #c96a10;
+    --red:     #b02a1e;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--black);
+    color: var(--text);
+    font-family: 'Malgun Gothic','Apple SD Gothic Neo',Arial,sans-serif;
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* ── VATYA diagonal pattern (SVG inline) ── */
+  .diag-bg {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M-5 45 L45 -5' stroke='%232347a0' stroke-width='3' opacity='0.12'/%3E%3C/svg%3E");
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    background: var(--blue);
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .topbar-logo {
+    font-size: 26px;
+    font-weight: 900;
+    color: var(--white);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+  .topbar-tagline {
+    font-size: 11px;
+    color: rgba(255,255,255,0.6);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .topbar-date {
+    font-size: 12px;
+    color: rgba(255,255,255,0.7);
+    letter-spacing: 0.5px;
+  }
+  .topbar-badge {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 4px 14px;
+    border-radius: 2px;
+  }
+
+  /* ── MAIN LAYOUT ── */
+  .main { padding: 28px 32px; max-width: 1440px; margin: 0 auto; }
+
+  /* ── SECTION LABEL ── */
+  .section-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--blue-lt);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── KPI ROW ── */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px;
+    margin-bottom: 28px;
+    border: 2px solid var(--blue);
+  }
+  .kpi {
+    background: var(--surface);
+    padding: 22px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi:not(:last-child) {
+    border-right: 2px solid var(--blue);
+  }
+  .kpi-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .kpi-value {
+    font-size: 32px;
+    font-weight: 900;
+    color: var(--blue-lt);
+    line-height: 1;
+    margin-bottom: 6px;
+    letter-spacing: -1px;
+  }
+  .kpi-sub { font-size: 11px; color: var(--muted); }
+  .kpi-bar { height: 3px; background: var(--border); margin-top: 14px; }
+  .kpi-fill { height: 100%; background: var(--blue); }
+  /* diagonal decoration */
+  .kpi::after {
+    content: '';
+    position: absolute;
+    right: -10px;
+    bottom: -10px;
+    width: 60px;
+    height: 60px;
+    background: var(--blue);
+    opacity: 0.06;
+    transform: rotate(20deg);
+  }
+
+  /* ── GRID ── */
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px; }
+  .grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; margin-bottom:20px; }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--blue);
+    padding: 24px;
+  }
+  .card-title {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--blue-lt);
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .card-title span {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0;
+    text-transform: none;
+    font-weight: 400;
+  }
+
+  /* ── TODO ── */
+  .todo-add {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .todo-add input {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--blue);
+    padding: 9px 14px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .todo-add input:focus { border-color: var(--blue-lt); }
+  .todo-add input::placeholder { color: var(--muted); }
+  .todo-add select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 12px;
+    font-family: inherit;
+    padding: 9px 10px;
+    outline: none;
+    cursor: pointer;
+  }
+  .todo-add button {
+    background: var(--blue);
+    color: white;
+    border: none;
+    padding: 9px 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.2s;
+  }
+  .todo-add button:hover { background: var(--blue-lt); }
+
+  .todo-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    margin-bottom: 4px;
+    background: var(--surface);
+    border-left: 3px solid transparent;
+    transition: border-color 0.2s;
+    cursor: default;
+  }
+  .todo-item:hover { border-left-color: var(--blue); }
+  .todo-item.done { opacity: 0.4; }
+  .todo-item.done .todo-text { text-decoration: line-through; }
+
+  .todo-cb {
+    width: 16px; height: 16px;
+    border: 2px solid var(--muted);
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .todo-cb.checked { background: var(--blue); border-color: var(--blue); }
+  .todo-cb.checked::after { content: '✓'; color: white; font-size: 10px; font-weight: 900; }
+
+  .todo-text { flex: 1; font-size: 13px; }
+  .todo-who { font-size: 11px; color: var(--muted); white-space: nowrap; }
+
+  .p-badge {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-left: 2px solid;
+  }
+  .p-high  { color: var(--red);    border-color: var(--red);    background: rgba(192,57,43,0.12); }
+  .p-med   { color: var(--orange); border-color: var(--orange); background: rgba(217,122,26,0.12); }
+  .p-low   { color: var(--blue-lt);border-color: var(--blue-lt);background: rgba(35,71,160,0.12); }
+
+  .todo-delete { color: var(--muted); cursor: pointer; font-size: 18px; opacity:0; line-height:1; }
+  .todo-item:hover .todo-delete { opacity: 1; }
+
+  /* ── PROJECT BARS ── */
+  .proj-item { margin-bottom: 18px; }
+  .proj-item:last-child { margin-bottom: 0; }
+  .proj-header { display: flex; justify-content: space-between; margin-bottom: 5px; }
+  .proj-name { font-size: 12px; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: 0.5px; }
+  .proj-pct  { font-size: 12px; font-weight: 900; color: var(--blue-lt); }
+  .proj-bar  { height: 5px; background: var(--border); }
+  .proj-fill { height: 100%; background: var(--blue); transition: width 1s ease; }
+  .proj-sub  { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  /* ── SCHEDULE ── */
+  .week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  .day-label { font-size: 10px; font-weight: 700; color: var(--muted); text-align: center; letter-spacing: 1px; text-transform: uppercase; padding: 4px 0 6px; }
+  .day-num   { font-size: 14px; font-weight: 900; text-align: center; padding: 6px 4px; margin-bottom: 4px; color: var(--text); }
+  .day-num.today { background: var(--blue); color: white; }
+  .day-event {
+    background: var(--surface);
+    border-left: 3px solid var(--blue);
+    padding: 5px 6px;
+    margin-bottom: 3px;
+    font-size: 10px;
+    line-height: 1.4;
+    color: var(--text);
+  }
+  .day-event.orange { border-color: var(--orange); }
+  .day-event.green  { border-color: var(--green); }
+  .day-event.red    { border-color: var(--red); }
+  .event-time { color: var(--muted); font-size: 9px; letter-spacing: 0.5px; }
+
+  /* ── CHART ── */
+  .chart-wrap { position: relative; height: 210px; }
+  .chart-wrap.sm { height: 170px; }
+
+  /* ── SALES TABLE ── */
+  .sales-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .sales-table th {
+    text-align: left; padding: 8px 10px;
+    color: var(--blue-lt); font-size: 9px; font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase;
+    border-bottom: 2px solid var(--blue);
+  }
+  .sales-table td { padding: 9px 10px; border-bottom: 1px solid var(--border); }
+  .sales-table tr:last-child td { border-bottom: none; }
+  .sales-table tr:hover td { background: var(--surface); }
+
+  .rank-box {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px;
+    font-size: 10px; font-weight: 900;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .rank-box.r1 { background: var(--blue); border-color: var(--blue); color: white; }
+
+  .bar-inline { display: inline-block; height: 3px; background: var(--blue); vertical-align: middle; margin-left: 6px; opacity: 0.6; }
+
+  /* ── STRIPE DECORATION ── */
+  .stripe-deco {
+    height: 8px;
+    background: repeating-linear-gradient(
+      -55deg,
+      var(--blue) 0px,
+      var(--blue) 6px,
+      transparent 6px,
+      transparent 12px
+    );
+    opacity: 0.4;
+    margin-bottom: 20px;
+  }
+
+  /* ── FOOTER TAGLINE ── */
+  .footer {
+    margin-top: 8px;
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 2px solid var(--blue);
+  }
+  .footer-logo { font-size: 18px; font-weight: 900; color: var(--blue-lt); letter-spacing: 3px; }
+  .footer-tag  { font-size: 11px; color: var(--muted); letter-spacing: 1px; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div>
+    <div class="topbar-logo">VATYA</div>
+    <div class="topbar-tagline">The Joy of My Kitchen</div>
+  </div>
+  <div class="topbar-right">
+    <div class="topbar-date" id="live-date"></div>
+    <div id="google-auth-container" style="display:flex; align-items:center; gap:10px;"></div>
+    <div class="topbar-badge">마케팅팀 대시보드</div>
+  </div>
+</div>
+
+<!-- STRIPE -->
+<div class="stripe-deco"></div>
+
+<div class="main">
+
+  <!-- KPI -->
+  <div class="section-label">Key Performance</div>
+  <div class="kpi-row">
+    <div class="kpi">
+      <div class="kpi-label">총 매출액</div>
+      <div class="kpi-value">7,100<span style="font-size:16px;font-weight:700">만</span></div>
+      <div class="kpi-sub">1월 ~ 2월 10일 누계</div>
+      <div class="kpi-bar"><div class="kpi-fill" style="width:71%"></div></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Top 제품 매출</div>
+      <div class="kpi-value">2,883<span style="font-size:16px;font-weight:700">만</span></div>
+      <div class="kpi-sub">무선 이어폰 · 40.6%</div>
+      <div class="kpi-bar"><div class="kpi-fill" style="width:41%;background:var(--green)"></div></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">오늘 할 일</div>
+      <div class="kpi-value" id="kpi-todo-val">6<span style="font-size:16px;font-weight:700">개</span></div>
+      <div class="kpi-sub" id="kpi-todo-sub">완료 0 / 전체 6</div>
+      <div class="kpi-bar"><div class="kpi-fill" id="kpi-todo-bar" style="width:0%;background:var(--orange)"></div></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">진행 프로젝트</div>
+      <div class="kpi-value">4<span style="font-size:16px;font-weight:700">개</span></div>
+      <div class="kpi-sub">평균 진행률 51%</div>
+      <div class="kpi-bar"><div class="kpi-fill" style="width:51%;background:var(--blue-lt)"></div></div>
+    </div>
+  </div>
+
+  <!-- ROW 1: Todo + Schedule -->
+  <div class="grid-2">
+
+    <!-- TODO -->
+    <div class="card">
+      <div class="card-title">
+        TODAY'S TASKS
+        <span id="todo-count-label">0 / 6 완료</span>
+      </div>
+      <div class="todo-add">
+        <input type="text" id="new-todo" placeholder="새 할 일 입력..."/>
+        <select id="new-priority">
+          <option value="high">높음</option>
+          <option value="med" selected>중간</option>
+          <option value="low">낮음</option>
+        </select>
+        <button onclick="addTodo()">추가</button>
+      </div>
+      <div id="todo-list"></div>
+    </div>
+
+    <!-- SCHEDULE -->
+    <div class="card">
+      <div class="card-title">WEEKLY SCHEDULE <span>2026.03.30 — 04.05</span></div>
+      <div class="week-grid">
+        <div>
+          <div class="day-label">MON</div>
+          <div class="day-num">30</div>
+          <div class="day-event green"><div>팀 주간회의</div><div class="event-time">10:00</div></div>
+        </div>
+        <div>
+          <div class="day-label">TUE</div>
+          <div class="day-num">31</div>
+          <div class="day-event orange"><div>프로모션 초안</div><div class="event-time">마감</div></div>
+        </div>
+        <div>
+          <div class="day-label">WED</div>
+          <div class="day-num today">1</div>
+          <div class="day-event"><div>영상 소재 검토</div><div class="event-time">14:00</div></div>
+          <div class="day-event orange"><div>예산 보고서</div><div class="event-time">16:00</div></div>
+        </div>
+        <div>
+          <div class="day-label">THU</div>
+          <div class="day-num">2</div>
+          <div class="day-event"><div>인플루언서 준비</div><div class="event-time">오전</div></div>
+        </div>
+        <div>
+          <div class="day-label">FRI</div>
+          <div class="day-num">3</div>
+          <div class="day-event red"><div>인플루언서 미팅</div><div class="event-time">마감</div></div>
+          <div class="day-event green"><div>주간 성과 보고</div><div class="event-time">17:00</div></div>
+        </div>
+        <div>
+          <div class="day-label">SAT</div>
+          <div class="day-num" style="color:var(--muted)">4</div>
+        </div>
+        <div>
+          <div class="day-label">SUN</div>
+          <div class="day-num" style="color:var(--muted)">5</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 2: Projects + Sales chart -->
+  <div class="grid-2">
+
+    <!-- PROJECTS -->
+    <div class="card">
+      <div class="card-title">PROJECT PROGRESS</div>
+      <div class="proj-item">
+        <div class="proj-header">
+          <span class="proj-name">4월 신제품 런칭 캠페인</span>
+          <span class="proj-pct">45%</span>
+        </div>
+        <div class="proj-bar"><div class="proj-fill" style="width:45%"></div></div>
+        <div class="proj-sub">3월 넷째 주 티저 시작 예정</div>
+      </div>
+      <div class="proj-item">
+        <div class="proj-header">
+          <span class="proj-name">영상 광고 제작 (B안)</span>
+          <span class="proj-pct" style="color:var(--orange)">30%</span>
+        </div>
+        <div class="proj-bar"><div class="proj-fill" style="width:30%;background:var(--orange)"></div></div>
+        <div class="proj-sub">영상 3개 추가 제작 중 · 박사원</div>
+      </div>
+      <div class="proj-item">
+        <div class="proj-header">
+          <span class="proj-name">3월 프로모션 기획</span>
+          <span class="proj-pct" style="color:var(--green)">75%</span>
+        </div>
+        <div class="proj-bar"><div class="proj-fill" style="width:75%;background:var(--green)"></div></div>
+        <div class="proj-sub">기획안 초안 완료 · 김대리</div>
+      </div>
+      <div class="proj-item">
+        <div class="proj-header">
+          <span class="proj-name">인플루언서 협업</span>
+          <span class="proj-pct">55%</span>
+        </div>
+        <div class="proj-bar"><div class="proj-fill" style="width:55%"></div></div>
+        <div class="proj-sub">미팅 일정 조율 중 · 이과장</div>
+      </div>
+
+      <!-- Radar -->
+      <div class="chart-wrap sm" style="margin-top:18px">
+        <canvas id="radarChart"></canvas>
+      </div>
+    </div>
+
+    <!-- SALES TREND -->
+    <div class="card">
+      <div class="card-title">SALES TREND</div>
+      <div class="chart-wrap">
+        <canvas id="salesTrendChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 3: Sales rank + Region + Category -->
+  <div class="grid-3">
+
+    <!-- RANK TABLE -->
+    <div class="card">
+      <div class="card-title">PRODUCT RANKING</div>
+      <table class="sales-table">
+        <thead><tr><th>#</th><th>제품</th><th>매출</th><th>비중</th></tr></thead>
+        <tbody>
+          <tr><td><div class="rank-box r1">1</div></td><td>무선 이어폰</td><td style="font-weight:700;color:var(--text)">2,883만</td><td>40.6%<span class="bar-inline" style="width:70px"></span></td></tr>
+          <tr><td><div class="rank-box">2</div></td><td>텀블러</td><td>1,152만</td><td>16.2%<span class="bar-inline" style="width:28px"></span></td></tr>
+          <tr><td><div class="rank-box">3</div></td><td>블루투스 스피커</td><td>960만</td><td>13.5%<span class="bar-inline" style="width:23px"></span></td></tr>
+          <tr><td><div class="rank-box">4</div></td><td>보조배터리</td><td>903만</td><td>12.7%<span class="bar-inline" style="width:22px"></span></td></tr>
+          <tr><td><div class="rank-box">5</div></td><td>에코백</td><td>616만</td><td>8.7%<span class="bar-inline" style="width:15px"></span></td></tr>
+          <tr><td><div class="rank-box">6</div></td><td>무선 충전기</td><td>585만</td><td>8.2%<span class="bar-inline" style="width:14px"></span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- REGION -->
+    <div class="card">
+      <div class="card-title">REGIONAL SALES</div>
+      <div class="chart-wrap sm">
+        <canvas id="regionChart"></canvas>
+      </div>
+    </div>
+
+    <!-- CATEGORY -->
+    <div class="card">
+      <div class="card-title">CATEGORY SHARE</div>
+      <div class="chart-wrap sm">
+        <canvas id="categoryChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="footer-logo">VATYA</div>
+  <div class="footer-tag">THE JOY OF MY KITCHEN · 내 주방의 즐거움, 밧드야</div>
+  <div class="footer-tag" id="footer-date"></div>
+</div>
+
+<script>
+/* ── DATE ── */
+(function(){
+  const days = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  const d = new Date();
+  const str = `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${days[d.getDay()]}`;
+  document.getElementById('live-date').textContent = str;
+  document.getElementById('footer-date').textContent = str;
+})();
+
+/* ── TODOS ── */
+let todos = [
+  {id:1,text:'영상 광고 소재 3개 검토 및 피드백',priority:'high',done:false,who:'박사원',calendarEventId:null,lastSyncTime:Date.now()},
+  {id:2,text:'3월 프로모션 기획안 최종 검토',priority:'high',done:false,who:'김대리',calendarEventId:null,lastSyncTime:Date.now()},
+  {id:3,text:'인플루언서 미팅 일정 최종 확정 (금요일 마감)',priority:'high',done:false,who:'이과장',calendarEventId:null,lastSyncTime:Date.now()},
+  {id:4,text:'경쟁사 C사 신규 캠페인 분석 보고서',priority:'med',done:false,who:'박사원',calendarEventId:null,lastSyncTime:Date.now()},
+  {id:5,text:'영상 제작비 추가 200만원 예산 품의서',priority:'med',done:false,who:'정팀장',calendarEventId:null,lastSyncTime:Date.now()},
+  {id:6,text:'4월 신제품 티저 일정표 공유',priority:'low',done:false,who:'전체팀',calendarEventId:null,lastSyncTime:Date.now()},
+];
+let nextId = 7;
+const pLabel = {high:'HIGH',med:'MED',low:'LOW'};
+const pClass = {high:'p-high',med:'p-med',low:'p-low'};
+
+function renderTodos(){
+  const order = {high:0,med:1,low:2};
+  const sorted = [...todos].sort((a,b)=>order[a.priority]-order[b.priority]);
+  document.getElementById('todo-list').innerHTML = sorted.map(t=>`
+    <div class="todo-item ${t.done?'done':''}">
+      <div class="todo-cb ${t.done?'checked':''}" onclick="toggleTodo(${t.id})"></div>
+      <div class="todo-text">${t.text}</div>
+      <div class="todo-who">${t.who}</div>
+      <span class="p-badge ${pClass[t.priority]}">${pLabel[t.priority]}</span>
+      <span class="todo-delete" onclick="deleteTodo(${t.id})">×</span>
+    </div>
+  `).join('');
+  updateKpi();
+}
+
+async function toggleTodo(id){
+  const t=todos.find(x=>x.id===id);
+  if(t){
+    t.done=!t.done;
+    t.lastSyncTime=Date.now();
+    renderTodos();
+
+    // Google Calendar 이벤트 업데이트
+    if(isGoogleAuthed() && t.calendarEventId){
+      await updateCalendarEvent(t);
+    }
+  }
+}
+async function deleteTodo(id){
+  const t=todos.find(x=>x.id===id);
+
+  // Google Calendar에서 먼저 삭제
+  if(isGoogleAuthed() && t && t.calendarEventId){
+    await deleteCalendarEvent(t.calendarEventId);
+  }
+
+  todos=todos.filter(x=>x.id!==id);
+  renderTodos();
+}
+
+async function addTodo(){
+  const input = document.getElementById('new-todo');
+  const priority = document.getElementById('new-priority').value;
+  const text = input.value.trim();
+  if(!text){ input.focus(); return; }
+
+  const todo = {id:nextId++,text,priority,done:false,who:'나',calendarEventId:null,lastSyncTime:Date.now()};
+  todos.push(todo);
+  input.value='';
+  renderTodos();
+
+  // Google Calendar에 동기화
+  if(isGoogleAuthed()){
+    await syncTodoToCalendar(todo);
+  }
+}
+document.getElementById('new-todo').addEventListener('keydown',e=>{ if(e.key==='Enter') addTodo(); });
+
+function updateKpi(){
+  const done=todos.filter(t=>t.done).length, total=todos.length;
+  const pct=total?Math.round(done/total*100):0;
+  document.getElementById('kpi-todo-val').innerHTML=`${total}<span style="font-size:16px;font-weight:700">개</span>`;
+  document.getElementById('kpi-todo-sub').textContent=`완료 ${done} / 전체 ${total}`;
+  document.getElementById('kpi-todo-bar').style.width=pct+'%';
+  document.getElementById('todo-count-label').textContent=`${done} / ${total} 완료`;
+}
+
+renderTodos();
+
+/* ── CHART DEFAULTS ── */
+Chart.defaults.color = '#555';
+Chart.defaults.borderColor = '#dde2ee';
+Chart.defaults.font.family = "'Malgun Gothic','Apple SD Gothic Neo',Arial,sans-serif";
+
+const BLUE   = '#2347a0';
+const BLUE2  = '#3a5fc0';
+const GREEN  = '#2fa86b';
+const ORANGE = '#d97a1a';
+const RED    = '#c0392b';
+
+/* Sales Trend */
+new Chart(document.getElementById('salesTrendChart'),{
+  type:'line',
+  data:{
+    labels:['01-05','01-08','01-12','01-15','01-19','01-22','01-26','02-01','02-05','02-10'],
+    datasets:[
+      {label:'무선 이어폰',data:[4005,4628,null,3382,null,5429,null,6230,null,5162],
+       borderColor:BLUE2,backgroundColor:'rgba(58,95,192,0.1)',tension:0.3,fill:true,pointRadius:4,spanGaps:false},
+      {label:'텀블러',data:[1950,1625,null,2100,null,1800,null,2375,null,1675],
+       borderColor:GREEN,tension:0.3,pointRadius:4,spanGaps:false,fill:false},
+      {label:'블루투스 스피커',data:[null,2160,null,2640,null,1800,null,null,3000,null],
+       borderColor:ORANGE,tension:0.3,pointRadius:4,spanGaps:false,fill:false},
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'top',labels:{boxWidth:10,font:{size:11},color:'#555'}}},
+    scales:{
+      y:{ticks:{callback:v=>(v/1000).toFixed(0)+'M',font:{size:10},color:'#666'},grid:{color:'#eef0f5'}},
+      x:{ticks:{font:{size:10},color:'#666'},grid:{color:'#eef0f5'}}
+    }
+  }
+});
+
+/* Region */
+new Chart(document.getElementById('regionChart'),{
+  type:'bar',
+  data:{
+    labels:['서울','대구','부산'],
+    datasets:[{
+      data:[41277,15907,13822],
+      backgroundColor:[BLUE,'rgba(35,71,160,0.55)','rgba(35,71,160,0.35)'],
+      borderColor:[BLUE2,BLUE2,BLUE2],
+      borderWidth:1,borderRadius:0
+    }]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{
+      y:{ticks:{callback:v=>(v/10000).toFixed(0)+'만',font:{size:10},color:'#666'},grid:{color:'#eef0f5'}},
+      x:{ticks:{font:{size:13},color:'#555'},grid:{display:false}}
+    }
+  }
+});
+
+/* Category */
+new Chart(document.getElementById('categoryChart'),{
+  type:'doughnut',
+  data:{
+    labels:['전자기기','생활용품'],
+    datasets:[{
+      data:[53316,17690],
+      backgroundColor:[BLUE,'rgba(35,71,160,0.35)'],
+      borderColor:['#1a3a8f','#1a3a8f'],
+      borderWidth:2,hoverOffset:4
+    }]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    cutout:'60%',
+    plugins:{
+      legend:{position:'bottom',labels:{font:{size:12},color:'#555',boxWidth:12}},
+      tooltip:{callbacks:{label:ctx=>ctx.label+': '+(ctx.parsed/10000).toLocaleString()+'만원'}}
+    }
+  }
+});
+
+/* Radar */
+new Chart(document.getElementById('radarChart'),{
+  type:'radar',
+  data:{
+    labels:['기획','콘텐츠 제작','협업','예산','일정'],
+    datasets:[{
+      label:'진행률',
+      data:[85,45,55,30,70],
+      backgroundColor:'rgba(35,71,160,0.2)',
+      borderColor:BLUE2,
+      pointBackgroundColor:BLUE2,
+      pointRadius:4
+    }]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    scales:{r:{
+      min:0,max:100,
+      ticks:{display:false,stepSize:25},
+      grid:{color:'#eef0f5'},
+      pointLabels:{font:{size:10},color:'#555'}
+    }},
+    plugins:{legend:{display:false}}
+  }
+});
+</script>
+
+<!-- Google Calendar API 스크립트 로드 -->
+<script src="google-auth.js"></script>
+<script src="google-calendar-api.js"></script>
+<script src="sync-manager.js"></script>
+
+<script>
+// 페이지 로드 시 Google 인증 초기화
+window.addEventListener('load', () => {
+  // google.accounts가 로드될 때까지 대기
+  if (typeof google !== 'undefined' && google.accounts) {
+    googleAuth.init();
+
+    // 이미 인증된 경우 Calendar에서 동기화
+    if (isGoogleAuthed()) {
+      syncManager.syncFromCalendar();
+    }
+  } else {
+    // 재시도
+    setTimeout(() => {
+      if (typeof google !== 'undefined' && google.accounts) {
+        googleAuth.init();
+        if (isGoogleAuthed()) {
+          syncManager.syncFromCalendar();
+        }
+      }
+    }, 1000);
+  }
+});
+
+// 주기적 동기화 (5분마다)
+setInterval(() => {
+  if (isGoogleAuthed()) {
+    syncManager.syncFromCalendar();
+  }
+}, 300000);
+</script>
+</body>
+</html>
