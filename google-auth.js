@@ -1,9 +1,8 @@
-// Google OAuth 2.0 인증 관리
+// Google OAuth 2.0 인증 관리 (Client ID 자동 설정 방식)
 class GoogleAuth {
   constructor() {
     this.accessToken = null;
     this.tokenExpiry = null;
-    // 사용자가 Google Cloud Console에서 Client ID를 설정해야 함
     this.clientId = localStorage.getItem('google_client_id') || null;
     this.scopes = [
       'https://www.googleapis.com/auth/calendar',
@@ -16,7 +15,6 @@ class GoogleAuth {
     // URL fragment에서 토큰 추출 (로그인 후 리다이렉트)
     this.extractTokenFromURL();
 
-    const container = document.getElementById('google-auth-container');
     if (this.getStoredToken()) {
       this.showLogoutButton();
       // 대시보드 표시
@@ -59,15 +57,14 @@ class GoogleAuth {
 
   // Google Authorization Endpoint로 redirect
   login() {
-    // Client ID 없으면 경고
+    // Client ID 없으면 입력 요청
     if (!this.clientId) {
-      alert('⚠️ Google Cloud Console에서 Client ID 설정이 필요합니다.\n개발자 문의: Google Cloud Console → OAuth 2.0 설정 필요');
+      this.promptForClientId();
       return;
     }
 
     // 현재 페이지로 리다이렉트되도록 설정
     const redirectUri = window.location.origin + '/';
-
     const scope = this.scopes.join(' ');
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
@@ -78,11 +75,29 @@ class GoogleAuth {
       `prompt=consent&` +
       `include_granted_scopes=true`;
 
-    console.log('OAuth URL:', authUrl);
     window.location.href = authUrl;
   }
 
-  // Client ID 설정 (Google Cloud에서 생성 후)
+  // Client ID 입력 모달
+  promptForClientId() {
+    const clientId = prompt(
+      '🔐 Google Client ID를 입력하세요:\n\n' +
+      '1. https://console.cloud.google.com 접속\n' +
+      '2. 프로젝트 생성 또는 선택\n' +
+      '3. "사용자 인증 정보" → "OAuth 2.0 클라이언트 ID" 생성\n' +
+      '4. "웹 애플리케이션" 선택 후 Client ID 복사\n' +
+      '5. 아래에 붙여넣기\n\n' +
+      'Client ID를 입력하세요:'
+    );
+
+    if (clientId) {
+      this.setClientId(clientId);
+      // 다시 시도
+      setTimeout(() => this.login(), 300);
+    }
+  }
+
+  // Client ID 설정 및 저장
   setClientId(clientId) {
     this.clientId = clientId;
     localStorage.setItem('google_client_id', clientId);
@@ -135,7 +150,7 @@ class GoogleAuth {
     this.showLoginModal();
   }
 
-  // 사용자 정보 조회 (토큰에서 기본 정보 추출)
+  // 사용자 정보 조회
   getUserEmail() {
     return localStorage.getItem('google_user_email') || '사용자';
   }
@@ -171,25 +186,22 @@ class GoogleAuth {
     }
 
     // topbar에 로그아웃 버튼 표시
-    const topbarRight = document.querySelector('.topbar-right');
-    if (topbarRight) {
-      const userEmail = this.getUserEmail();
-      const authContainer = document.getElementById('google-auth-container');
-      if (authContainer) {
-        authContainer.innerHTML = `
-          <span style="font-size: 12px; color: white;">${userEmail}</span>
-          <button onclick="googleAuth.logout()" style="
-            background: rgba(255,255,255,0.2);
-            color: white;
-            border: 1px solid rgba(255,255,255,0.4);
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-size: 11px;
-            cursor: pointer;
-            font-family: inherit;
-          ">로그아웃</button>
-        `;
-      }
+    const userEmail = this.getUserEmail();
+    const authContainer = document.getElementById('google-auth-container');
+    if (authContainer) {
+      authContainer.innerHTML = `
+        <span style="font-size: 12px; color: white;">${userEmail}</span>
+        <button onclick="googleAuth.logout()" style="
+          background: rgba(255,255,255,0.2);
+          color: white;
+          border: 1px solid rgba(255,255,255,0.4);
+          padding: 6px 12px;
+          border-radius: 4px;
+          font-size: 11px;
+          cursor: pointer;
+          font-family: inherit;
+        ">로그아웃</button>
+      `;
     }
 
     // 동기화 시작
