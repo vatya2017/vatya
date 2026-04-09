@@ -632,6 +632,25 @@
     box-shadow: 0 8px 16px rgba(0,0,0,0.2);
   }
 
+  .login-modal-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: inherit;
+    box-sizing: border-box;
+    margin-bottom: 10px;
+    outline: none;
+  }
+
+  .login-modal-error {
+    color: #ffe082;
+    font-size: 13px;
+    margin-bottom: 10px;
+    text-align: center;
+  }
+
   /* ── 초소형 모바일 (≤ 360px) ── */
   @media (max-width: 360px) {
     .topbar { height: 48px; padding: 0 12px; }
@@ -667,21 +686,26 @@
 <body>
 
 <!-- LOGIN MODAL -->
-<div id="login-modal" class="login-modal" style="display:none;">
+<div id="login-modal" class="login-modal">
   <div class="login-modal-content">
     <div class="login-modal-logo">김비서</div>
     <div class="login-modal-title">VATYA Dashboard</div>
     <div class="login-modal-subtitle">
       마케팅 팀의 업무를 한눈에 관리하는<br/>실시간 대시보드
     </div>
-    <button class="login-modal-button" onclick="googleAuth.login()">
-      🔐 Google로 로그인
+    <input type="password" id="password-input" class="login-modal-input"
+      placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter')doLogin()"/>
+    <div id="pw-error" class="login-modal-error" style="display:none;">
+      ⚠️ 비밀번호가 올바르지 않습니다
+    </div>
+    <button class="login-modal-button" onclick="doLogin()">
+      🔐 로그인
     </button>
   </div>
 </div>
 
 <!-- DASHBOARD CONTAINER -->
-<div id="dashboard-container" style="display:block;">
+<div id="dashboard-container" style="display:none;">
 
 <!-- TOP BAR -->
 <div class="topbar">
@@ -691,8 +715,8 @@
   </div>
   <div class="topbar-right">
     <div class="topbar-date" id="live-date"></div>
-    <div id="google-auth-container" style="display:flex; align-items:center; gap:10px;"></div>
     <div class="topbar-badge">마케팅팀 대시보드</div>
+    <button onclick="doLogout()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;font-size:11px;font-weight:700;padding:5px 12px;border-radius:2px;cursor:pointer;font-family:inherit;letter-spacing:0.5px;">로그아웃</button>
   </div>
 </div>
 
@@ -916,12 +940,12 @@
 
 /* ── TODOS ── */
 let todos = [
-  {id:1,text:'영상 광고 소재 3개 검토 및 피드백',priority:'high',done:false,who:'박사원',calendarEventId:null,lastSyncTime:Date.now()},
-  {id:2,text:'3월 프로모션 기획안 최종 검토',priority:'high',done:false,who:'김대리',calendarEventId:null,lastSyncTime:Date.now()},
-  {id:3,text:'인플루언서 미팅 일정 최종 확정 (금요일 마감)',priority:'high',done:false,who:'이과장',calendarEventId:null,lastSyncTime:Date.now()},
-  {id:4,text:'경쟁사 C사 신규 캠페인 분석 보고서',priority:'med',done:false,who:'박사원',calendarEventId:null,lastSyncTime:Date.now()},
-  {id:5,text:'영상 제작비 추가 200만원 예산 품의서',priority:'med',done:false,who:'정팀장',calendarEventId:null,lastSyncTime:Date.now()},
-  {id:6,text:'4월 신제품 티저 일정표 공유',priority:'low',done:false,who:'전체팀',calendarEventId:null,lastSyncTime:Date.now()},
+  {id:1,text:'영상 광고 소재 3개 검토 및 피드백',priority:'high',done:false,who:'박사원'},
+  {id:2,text:'3월 프로모션 기획안 최종 검토',priority:'high',done:false,who:'김대리'},
+  {id:3,text:'인플루언서 미팅 일정 최종 확정 (금요일 마감)',priority:'high',done:false,who:'이과장'},
+  {id:4,text:'경쟁사 C사 신규 캠페인 분석 보고서',priority:'med',done:false,who:'박사원'},
+  {id:5,text:'영상 제작비 추가 200만원 예산 품의서',priority:'med',done:false,who:'정팀장'},
+  {id:6,text:'4월 신제품 티저 일정표 공유',priority:'low',done:false,who:'전체팀'},
 ];
 let nextId = 7;
 const pLabel = {high:'HIGH',med:'MED',low:'LOW'};
@@ -942,46 +966,16 @@ function renderTodos(){
   updateKpi();
 }
 
-async function toggleTodo(id){
-  const t=todos.find(x=>x.id===id);
-  if(t){
-    t.done=!t.done;
-    t.lastSyncTime=Date.now();
-    renderTodos();
-
-    // Google Calendar 이벤트 업데이트
-    if(isGoogleAuthed() && t.calendarEventId){
-      await updateCalendarEvent(t);
-    }
-  }
-}
-async function deleteTodo(id){
-  const t=todos.find(x=>x.id===id);
-
-  // Google Calendar에서 먼저 삭제
-  if(isGoogleAuthed() && t && t.calendarEventId){
-    await deleteCalendarEvent(t.calendarEventId);
-  }
-
-  todos=todos.filter(x=>x.id!==id);
-  renderTodos();
-}
-
-async function addTodo(){
+function toggleTodo(id){ const t=todos.find(x=>x.id===id); if(t){ t.done=!t.done; renderTodos(); } }
+function deleteTodo(id){ todos=todos.filter(x=>x.id!==id); renderTodos(); }
+function addTodo(){
   const input = document.getElementById('new-todo');
   const priority = document.getElementById('new-priority').value;
   const text = input.value.trim();
   if(!text){ input.focus(); return; }
-
-  const todo = {id:nextId++,text,priority,done:false,who:'나',calendarEventId:null,lastSyncTime:Date.now()};
-  todos.push(todo);
+  todos.push({id:nextId++,text,priority,done:false,who:'나'});
   input.value='';
   renderTodos();
-
-  // Google Calendar에 동기화
-  if(isGoogleAuthed()){
-    await syncTodoToCalendar(todo);
-  }
 }
 document.getElementById('new-todo').addEventListener('keydown',e=>{ if(e.key==='Enter') addTodo(); });
 
@@ -1102,107 +1096,36 @@ new Chart(document.getElementById('radarChart'),{
 });
 </script>
 
-<!-- Google Calendar API 스크립트 로드 -->
-<script src="google-auth.js"></script>
-<script src="google-calendar-api.js"></script>
-<script src="sync-manager.js"></script>
-
 <script>
-// 주간 일정 렌더링
-async function renderWeeklySchedule() {
-  if (!isGoogleAuthed()) return;
-
-  try {
-    const events = await getWeeklyScheduleFromCalendar();
-
-    if (events.length === 0) {
-      console.log('No weekly events found');
-      return;
-    }
-
-    // 요일별 이벤트 그룹화
-    const eventsByDay = {};
-    events.forEach(event => {
-      const startDate = event.start.date || event.start.dateTime?.split('T')[0];
-      if (startDate) {
-        if (!eventsByDay[startDate]) {
-          eventsByDay[startDate] = [];
-        }
-        eventsByDay[startDate].push(event);
-      }
-    });
-
-    // week-grid 업데이트
-    const weekGrid = document.querySelector('.week-grid');
-    const dayDivs = weekGrid.querySelectorAll('> div');
-
-    dayDivs.forEach((dayDiv, index) => {
-      // 첫 번째 행(요일 레이블)과 두 번째 행(날짜)은 유지
-      const dayNum = dayDiv.querySelector('.day-num');
-      if (dayNum) {
-        const dateStr = dayNum.textContent.trim();
-        const eventContainer = dayDiv;
-
-        // 기존 day-event 제거 (날짜, 레이블 제외)
-        const existingEvents = eventContainer.querySelectorAll('.day-event');
-        existingEvents.forEach(e => e.remove());
-
-        // Google Calendar 이벤트 추가
-        const dateFormatted = new Date(dayNum.dataset.fullDate || new Date()).toISOString().split('T')[0];
-        if (eventsByDay[dateFormatted]) {
-          eventsByDay[dateFormatted].forEach(event => {
-            const eventDiv = document.createElement('div');
-            eventDiv.className = 'day-event';
-
-            // 이벤트 색상 결정 (우선순위 또는 기본값)
-            const priority = event.extendedProperties?.private?.priority;
-            if (priority === 'high') eventDiv.classList.add('red');
-            else if (priority === 'med') eventDiv.classList.add('orange');
-            else if (priority === 'low') eventDiv.classList.add('green');
-
-            const eventTime = event.start.dateTime ? new Date(event.start.dateTime).toLocaleTimeString('ko-KR', {hour: '2-digit', minute: '2-digit'}) : '종일';
-
-            eventDiv.innerHTML = `
-              <div>${event.summary}</div>
-              <div class="event-time">${eventTime}</div>
-            `;
-            eventContainer.appendChild(eventDiv);
-          });
-        }
-      }
-    });
-
-    console.log('✓ Weekly schedule updated from Calendar');
-  } catch (error) {
-    console.error('Failed to render weekly schedule:', error);
+const DASHBOARD_PASSWORD = 'vatya2026';
+function doLogin(){
+  const pw = document.getElementById('password-input').value;
+  if(pw === DASHBOARD_PASSWORD){
+    sessionStorage.setItem('vatya_authed','1');
+    document.getElementById('login-modal').style.display='none';
+    document.getElementById('dashboard-container').style.display='block';
+    document.getElementById('pw-error').style.display='none';
+  } else {
+    document.getElementById('pw-error').style.display='block';
+    document.getElementById('password-input').value='';
+    document.getElementById('password-input').focus();
   }
 }
-
-// 페이지 로드 시 Google 인증 초기화
-window.addEventListener('load', () => {
-  // Google OAuth Implicit Flow 초기화
-  googleAuth.init();
-
-  // 이미 인증된 경우 Calendar에서 동기화
-  if (isGoogleAuthed()) {
-    syncManager.syncFromCalendar();
-    renderWeeklySchedule();
+function doLogout(){
+  sessionStorage.removeItem('vatya_authed');
+  document.getElementById('login-modal').style.display='flex';
+  document.getElementById('dashboard-container').style.display='none';
+  document.getElementById('password-input').value='';
+}
+(function(){
+  if(sessionStorage.getItem('vatya_authed')==='1'){
+    document.getElementById('login-modal').style.display='none';
+    document.getElementById('dashboard-container').style.display='block';
+  } else {
+    document.getElementById('login-modal').style.display='flex';
+    document.getElementById('dashboard-container').style.display='none';
   }
-});
-
-// 5분마다 주간 일정 새로고침
-setInterval(() => {
-  if (isGoogleAuthed()) {
-    renderWeeklySchedule();
-  }
-}, 300000);
-
-// 주기적 동기화 (5분마다)
-setInterval(() => {
-  if (isGoogleAuthed()) {
-    syncManager.syncFromCalendar();
-  }
-}, 300000);
+})();
 </script>
 
 <!-- Service Worker 등록 (PWA) -->
