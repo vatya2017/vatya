@@ -939,7 +939,7 @@
 })();
 
 /* ── TODOS ── */
-let todos = [
+const DEFAULT_TODOS = [
   {id:1,text:'영상 광고 소재 3개 검토 및 피드백',priority:'high',done:false,who:'박사원'},
   {id:2,text:'3월 프로모션 기획안 최종 검토',priority:'high',done:false,who:'김대리'},
   {id:3,text:'인플루언서 미팅 일정 최종 확정 (금요일 마감)',priority:'high',done:false,who:'이과장'},
@@ -947,7 +947,12 @@ let todos = [
   {id:5,text:'영상 제작비 추가 200만원 예산 품의서',priority:'med',done:false,who:'정팀장'},
   {id:6,text:'4월 신제품 티저 일정표 공유',priority:'low',done:false,who:'전체팀'},
 ];
+let todos = [...DEFAULT_TODOS];
 let nextId = 7;
+function saveTodos(){ try{ localStorage.setItem('vatya_todos',JSON.stringify({todos,nextId})); }catch(e){} }
+function loadTodos(){ try{ const s=localStorage.getItem('vatya_todos'); if(s){ const d=JSON.parse(s); todos=d.todos; nextId=d.nextId; } }catch(e){} }
+loadTodos();
+window.addEventListener('storage',e=>{ if(e.key==='vatya_todos'){ loadTodos(); renderTodos(); } });
 const pLabel = {high:'HIGH',med:'MED',low:'LOW'};
 const pClass = {high:'p-high',med:'p-med',low:'p-low'};
 
@@ -966,8 +971,8 @@ function renderTodos(){
   updateKpi();
 }
 
-function toggleTodo(id){ const t=todos.find(x=>x.id===id); if(t){ t.done=!t.done; renderTodos(); } }
-function deleteTodo(id){ todos=todos.filter(x=>x.id!==id); renderTodos(); }
+function toggleTodo(id){ const t=todos.find(x=>x.id===id); if(t){ t.done=!t.done; saveTodos(); renderTodos(); } }
+function deleteTodo(id){ todos=todos.filter(x=>x.id!==id); saveTodos(); renderTodos(); }
 function addTodo(){
   const input = document.getElementById('new-todo');
   const priority = document.getElementById('new-priority').value;
@@ -975,6 +980,7 @@ function addTodo(){
   if(!text){ input.focus(); return; }
   todos.push({id:nextId++,text,priority,done:false,who:'나'});
   input.value='';
+  saveTodos();
   renderTodos();
 }
 document.getElementById('new-todo').addEventListener('keydown',e=>{ if(e.key==='Enter') addTodo(); });
